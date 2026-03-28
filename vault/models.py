@@ -21,32 +21,32 @@ class VaultEntry(models.Model):
     salt = models.BinaryField()
     created_at = models.DateTimeField(auto_now_add=True)
 
-class SharedEntry(models.Model):
-    entry = models.ForeignKey(VaultEntry, on_delete=models.CASCADE)
-    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_shares')
-    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_shares')
-
-    enc_sym_key = models.BinaryField()
-    iv = models.BinaryField()
-    ciphertext = models.BinaryField()
-
-    expires_at = models.DateTimeField(null=True, blank=True)
-    revoked = models.BooleanField(default=False)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def is_valid(self):
-        if self.revoked:
-            return False
-        if self.expires_at and timezone.now() > self.expires_at:
-            return False
-        return True
-
 # class SharedEntry(models.Model):
 #     entry = models.ForeignKey(VaultEntry, on_delete=models.CASCADE)
 #     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_shares')
 #     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_shares')
+
 #     enc_sym_key = models.BinaryField()
 #     iv = models.BinaryField()
 #     ciphertext = models.BinaryField()
+
+#     expires_at = models.DateTimeField(null=True, blank=True)
+#     revoked = models.BooleanField(default=False)
+
 #     created_at = models.DateTimeField(auto_now_add=True)
+
+#     def is_valid(self):
+#         if self.revoked:
+#             return False
+#         if self.expires_at and timezone.now() > self.expires_at:
+#             return False
+#         return True
+
+class SharedEntry(models.Model):
+    entry = models.ForeignKey(VaultEntry, on_delete=models.CASCADE)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_shares')
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_shares')
+    enc_sym_key = models.BinaryField()
+    iv = models.BinaryField()
+    ciphertext = models.BinaryField()
+    created_at = models.DateTimeField(auto_now_add=True)

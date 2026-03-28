@@ -67,7 +67,29 @@ def derive_key(password: str, salt: bytes, length=32):
 #     resp.delete_cookie('access_token')
 #     resp.delete_cookie('refresh_token')
 #     return resp
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    def post(self, request):
+        try:
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response(
+                    {"error":"Refresh token required"},
+                    status = status.HTTP_400_BAD_REQUEST
+                )
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response(
+                {"message": "Logout successful"},
+                status=status.HTTP_205_RESET_CONTENT
+            )
+        except Exception:
+            return Response(
+                {"error": "Invalid token"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 # Register 
 @api_view(["POST"])
@@ -144,10 +166,10 @@ def login_view(request):
     })
 
 
-@api_view(["POST"])
-def logout_view(request):
-    """Logout user (client should clear stored tokens)"""
-    return Response({"message": "Logged out"})
+# @api_view(["POST"])
+# def logout_view(request):
+#     """Logout user (client should clear stored tokens)"""
+#     return Response({"message": "Logged out"})
 
 # WhoAmI
 # Simple endpoint to check who the current user is (frontend can call to confirm login)
@@ -227,6 +249,56 @@ class VaultView(APIView):
 
         return Response({"message": "Password saved successfully.", "id": entry.id})
     
+#Vault edit 
+
+class VaultEditView(APIView):
+    permission_classes= [IsAuthenticated]
+
+    def post(self, request):
+        entry_id = request.data.get('entry_id')
+        new_password = request.data.get('new_password')
+        master_password = request.data.get('master_password')
+
+        if not all([entry_id,new_password,master_password]):
+            return Response({'details':'missing fields'}, status=400)
+        
+        try:
+            entry = VaultEntry.objects.get(id=entry_id, owner=request.user)
+        except VaultEntry.DoesNotExist:
+            return Response({'details','not found'}, status=400)
+        
+        new_salt = get_random_bytes(16)
+        new_iv = get_random_bytes(16)
+        new_key = PBKDF2(master_password, new_salt, dkLen=32, count=100_000)
+
+        cipher = AES.new(new_key, AES.MODE_CBC, new_iv)
+        pad_len = 16 - len(new_password.encode()) % 16
+        padded = new_password.encode() + bytes([pad_len] * pad_len)
+        ciphertext = cipher.encrypt(padded)
+
+        entry.ciphertext = ciphertext
+        entry.salt = new_salt
+        entry.iv = new_iv
+        entry.save()
+
+        return Response({'message': 'Password updated successfully'})
+    
+#delete view
+class VaultDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        entry_id = request.data.get('entry_id')
+
+        try:
+            entry = VaultEntry.objects.get(id=entry_id, owner=request.user)
+        except VaultEntry.DoesNotExist:
+            return Response({'detail': 'not found'}, status=404)
+
+        entry.delete()
+        return Response({'message': 'Password deleted successfully'})
+
+
 #updated shareview
 class ShareView(APIView):
     permission_classes = [IsAuthenticated]
@@ -316,67 +388,67 @@ class SharedVaultView(APIView):
         })
     
 #revoke view featurre for sender
-class RevokeShareView(APIView):
-    permission_classes = [IsAuthenticated]
+# class RevokeShareView(APIView):
+#     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        shared_id = request.data.get('shared_id')
+#     def post(self, request):
+#         shared_id = request.data.get('shared_id')
 
-        shared = SharedEntry.objects.get(
-            id=shared_id,
-            sender=request.user
-        )
+#         shared = SharedEntry.objects.get(
+#             id=shared_id,
+#             sender=request.user
+#         )
 
-        shared.revoked = True
-        shared.save()
+#         shared.revoked = True
+#         shared.save()
 
-        return Response({'message': 'Access revoked'})
+#         return Response({'message': 'Access revoked'})
 
 
 # Sharing endpoints
 
 # class ShareView(APIView):
-    permission_classes = [IsAuthenticated]
+    # permission_classes = [IsAuthenticated]
 
-    def post(self, request):
-        entry_id = request.data.get('entry_id')
-        recipient_username = request.data.get('recipient')
-        master_password = request.data.get('master_password')
+    # def post(self, request):
+    #     entry_id = request.data.get('entry_id')
+    #     recipient_username = request.data.get('recipient')
+    #     master_password = request.data.get('master_password')
 
-        if not all([entry_id, recipient_username, master_password]):
-            return Response({'detail': 'missing'}, status=400)
+    #     if not all([entry_id, recipient_username, master_password]):
+    #         return Response({'detail': 'missing'}, status=400)
 
-        try:
-            entry = VaultEntry.objects.get(id=entry_id, owner=request.user)
-        except VaultEntry.DoesNotExist:
-            return Response({'detail': 'entry not found'}, status=404)
+    #     try:
+    #         entry = VaultEntry.objects.get(id=entry_id, owner=request.user)
+    #     except VaultEntry.DoesNotExist:
+    #         return Response({'detail': 'entry not found'}, status=404)
 
-        try:
-            recipient = User.objects.get(username=recipient_username)
-            recipient_profile = Profile.objects.get(user=recipient)
-        except User.DoesNotExist:
-            return Response({'detail': 'recipient not found'}, status=404)
+    #     try:
+    #         recipient = User.objects.get(username=recipient_username)
+    #         recipient_profile = Profile.objects.get(user=recipient)
+    #     except User.DoesNotExist:
+    #         return Response({'detail': 'recipient not found'}, status=404)
 
-        sender_profile = Profile.objects.get(user=request.user)
-        key_sender = derive_key(master_password, sender_profile.salt)
-        aesgcm_sender = AESGCM(key_sender)
-        try:
-            plaintext = aesgcm_sender.decrypt(entry.iv, entry.ciphertext, None)
-        except Exception:
-            return Response({'detail': 'decrypt failed'}, status=400)
+    #     sender_profile = Profile.objects.get(user=request.user)
+    #     key_sender = derive_key(master_password, sender_profile.salt)
+    #     aesgcm_sender = AESGCM(key_sender)
+    #     try:
+    #         plaintext = aesgcm_sender.decrypt(entry.iv, entry.ciphertext, None)
+    #     except Exception:
+    #         return Response({'detail': 'decrypt failed'}, status=400)
 
-        # Hybrid encryption
-        sym_key = os.urandom(32)
-        aesgcm = AESGCM(sym_key)
-        iv = os.urandom(12)
-        ct = aesgcm.encrypt(iv, plaintext, None)
+    #     # Hybrid encryption
+    #     sym_key = os.urandom(32)
+    #     aesgcm = AESGCM(sym_key)
+    #     iv = os.urandom(12)
+    #     ct = aesgcm.encrypt(iv, plaintext, None)
 
-        rsa_pub = RSA.import_key(recipient_profile.public_key_pem.encode())
-        rsa_cipher = PKCS1_OAEP.new(rsa_pub)
-        enc_sym = rsa_cipher.encrypt(sym_key)
+    #     rsa_pub = RSA.import_key(recipient_profile.public_key_pem.encode())
+    #     rsa_cipher = PKCS1_OAEP.new(rsa_pub)
+    #     enc_sym = rsa_cipher.encrypt(sym_key)
 
-        shared = SharedEntry.objects.create(
-            entry=entry, sender=request.user, recipient=recipient,
-            enc_sym_key=enc_sym, iv=iv, ciphertext=ct
-        )
-        return Response({'detail': 'shared', 'shared_id': shared.id})
+    #     shared = SharedEntry.objects.create(
+    #         entry=entry, sender=request.user, recipient=recipient,
+    #         enc_sym_key=enc_sym, iv=iv, ciphertext=ct
+    #     )
+    #     return Response({'detail': 'shared', 'shared_id': shared.id})
