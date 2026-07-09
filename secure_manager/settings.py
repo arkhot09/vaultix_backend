@@ -34,7 +34,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = True
 
 # ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ['django-server','localhost', '127.0.0.1','192.168.0.103','10.190.119.252']
+ALLOWED_HOSTS = ['django-server','localhost', '127.0.0.1','192.168.0.103','10.190.119.252','vaultixbackend-production.up.railway.app']
 
 
 # Application definition
