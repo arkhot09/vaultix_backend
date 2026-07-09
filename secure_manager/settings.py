@@ -10,12 +10,19 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+# from decouple import config
+import os
+from dotenv import load_dotenv
 from pathlib import Path
 from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.efrom pathlib import Pathnv')
 
+MEDIA_URL = "/media/"
+
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -27,7 +34,7 @@ SECRET_KEY = 'django-insecure-$v(i27_v_#)!g&ct=l)zi2yo669w^6d9gswc@fj$p6lyns*jpq
 DEBUG = True
 
 # ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ['django-server','localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['django-server','localhost', '127.0.0.1','192.168.0.103','10.190.119.252']
 
 
 # Application definition
@@ -40,10 +47,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+
     # Third-party
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'drf_spectacular',
 
     # Local
     # 'vault',
@@ -85,12 +94,11 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'secure_manager.wsgi.application'
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'secure_manager_db',
+        'NAME': 'vaultix',
         'USER': 'root',
         'PASSWORD': '',        # WAMP default may have no password; set accordingly
         'HOST': '127.0.0.1',
@@ -98,6 +106,15 @@ DATABASES = {
          'charset': 'utf8mb4',
     'init_command': "SET sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'"
     }
+
+    # 'default': {
+    #     'ENGINE': 'django.db.backends.mysql',
+    #     'NAME': os.getenv('DB_NAME'),
+    #     'USER': os.getenv('DB_USER'),
+    #     'PASSWORD': os.getenv('DB_PASSWORD'),
+    #     'HOST': os.getenv('DB_HOST'),
+    #     'PORT': os.getenv('DB_PORT'),
+    # }
 }
 
 # Database
@@ -105,18 +122,20 @@ DATABASES = {
 
 
 REST_FRAMEWORK = {
+     "EXCEPTION_HANDLER":
+        "vault.exceptions.custom_exception_handler",
      'DEFAULT_AUTHENTICATION_CLASSES': (
-        'vault.auth.CookieJWTAuthentication',
+         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
-    ),
+              'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+
+
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': True,
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': True,
 }
 
@@ -187,3 +206,5 @@ CSRF_TRUSTED_ORIGINS = [
 # AUTH_USER_MODEL = "vault.CustomUser"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+# TRANSPORT_ENCRYPTION_KEY = os.getenv('TRANSPORT_ENCRYPTION_KEY')    
+TRANSPORT_ENCRYPTION_KEY ='MyS3cur3Tr@nsportK3y!2024XYZ#$$'

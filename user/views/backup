@@ -1,0 +1,758 @@
+# from rest_framework.views import APIView
+# from rest_framework.response import Response
+# from django.contrib.auth.models import User
+# import os
+
+# from rest_framework.permissions import IsAuthenticated
+# from ..model.user_model import Profile,LoginLog,TrustedDevice
+# from rest_framework.permissions import AllowAny
+# from rest_framework_simplejwt.tokens import RefreshToken
+# from django.contrib.auth import authenticate
+# from cryptography.hazmat.primitives.asymmetric import rsa
+# from cryptography.hazmat.primitives import serialization
+# from ..utils import decrypt_password
+# from ..services.security_score_service import ( calculate_security_score )
+# from user_agents import parse
+
+# # class Register
+# # iew(APIView):
+
+# #     def post(self, request):
+# #         username = request.data['username']
+# #         password = request.data['password']
+
+# #         user = User.objects.create_user(username=username, password=password)
+
+# #         # ✅ Generate salt WITHOUT key service
+# #         salt = os.urandom(16)
+
+# #         from ..model.user_model import Profile
+# #         Profile.objects.create(user=user, salt=salt)
+
+# #         return Response({"message": "User created"})
+
+# class RegisterView(APIView):
+
+#     def post(self, request):
+#         username = request.data['username']
+#         email = request.data.get('email')
+#         # password = request.data['password']
+#         try:
+#             password = decrypt_password(request.data.get('password'))
+#         except Exception as e:
+#             return Response({"error": str(e)}, status=400)
+#         # password = decrypt_password(request.data.get('password'))
+
+#         user = User.objects.create_user(username=username,email=email, password=password)
+
+#         salt = request.data.get('vault_salt') 
+
+#         # 🔐 RSA KEY GENERATION
+#         private_key = rsa.generate_private_key(
+#             public_exponent=65537,
+#             key_size=2048
+#         )
+
+#         public_key_pem = private_key.public_key()
+
+#         public_pem = public_key_pem.public_bytes(
+#             encoding=serialization.Encoding.PEM,
+#             format=serialization.PublicFormat.SubjectPublicKeyInfo
+#         )
+
+#         private_pem = private_key.private_bytes(
+#             encoding=serialization.Encoding.PEM,
+#             format=serialization.PrivateFormat.PKCS8,
+#             encryption_algorithm=serialization.NoEncryption()
+#         )
+
+   
+#         vault_verifier = request.data.get('vault_verifier')
+#         Profile.objects.create(
+#             user=user,
+#             salt=salt,
+#             vault_verifier=vault_verifier,
+#             public_key_pem=public_pem.decode(),  
+#             private_key_encrypted=b'',
+#             private_key_iv=b''
+#         )
+
+#         return Response({"message": "User created", "private_key": private_pem.decode(),  # 🔥 send to frontend
+#     "salt": salt})
+    
+# # class StorePrivateKey(APIView):
+# #     # permission_classes = [IsAuthenticated]
+# #     def post(self, request):
+# #         profile = Profile.objects.get(user=request.user)
+
+# #         Profile.private_key_encrypted = request.data['ciphertext'].encode()
+# #         Profile.private_key_iv = request.data['iv'].encode()
+
+# #         Profile.save()
+# #         return Response({"message":"Private key stored"})
+
+
+# class StorePrivateKey(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request):
+#         profile = Profile.objects.get(user=request.user)
+
+#         profile.private_key_encrypted = request.data.get('ciphertext').encode()
+#         profile.private_key_iv = request.data.get('iv').encode()
+#         profile.save()
+
+#         return Response({"message": "Stored"})
+
+# # class LoginView(APIView):
+# #     permission_classes = [AllowAny]
+
+# #     def post(self, request):
+# #         username = request.data.get('username')
+# #         username=request.user.username
+# #         profile = Profile.objects.get(user=user)
+
+# #         # password = request.data.get('password')
+# #         try:
+# #             password = decrypt_password(request.data.get('password'))
+# #         except Exception:
+# #             return Response(
+# #         {
+# #             "title":"Login Failed",
+# #             "message":"Password is too short"
+# #             },
+# #         status=400
+# #     )
+
+# #         user = authenticate(username=username, password=password)
+# #         LoginLog.objects.create(
+# #     user=user,
+    
+# #     latitude=request.data.get('lat'),
+# #     longitude=request.data.get('lng'),
+# #     status="SUCCESS"
+# # )
+        
+
+# #         if not user:
+# #             return Response({
+# #                 "title":"Login Failed",
+# #                 "message":"Invalid username or password"
+# #                 }, status=401)
+
+# #         refresh = RefreshToken.for_user(user)
+
+# #         return Response({
+# #     "access": str(refresh.access_token),
+# #     "refresh": str(refresh),
+
+# #     # "user": {
+# #     #     "username": user.username,
+# #     #     "email": user.email,
+# #     #     "profile_completed": profile.profile_completed
+# #     # }
+# # })
+    
+
+
+# class LoginView(APIView):
+
+#     permission_classes = [AllowAny]
+
+#     def post(self, request):
+
+#         username = request.data.get('username')
+
+#         latitude = request.data.get('lat')
+#         longitude = request.data.get('lng')
+
+#         # PASSWORD DECRYPTION
+#         try:
+#             password = decrypt_password(
+#                 request.data.get('password')
+#             )
+
+#         except Exception:
+
+#             return Response(
+#                 {
+#                     "title": "Login Failed",
+#                     "message": "Password decryption failed"
+#                 },
+#                 status=400
+#             )
+
+#         # AUTHENTICATE USER
+#         user = authenticate(
+#             username=username,
+#             password=password
+#         )
+
+#         # LOGIN FAILED
+#         if not user:
+
+#             # STORE FAILED ATTEMPT IF USER EXISTS
+#             existing_user = User.objects.filter(
+#                 username=username
+#             ).first()
+
+#             if existing_user:
+
+#                 LoginLog.objects.create(
+#                     user=existing_user,
+#                     latitude=latitude,
+#                     longitude=longitude,
+#                     status='BLOCKED'
+#                 )
+
+#             return Response(
+#                 {
+#                     "title": "Login Failed",
+#                     "message": "Invalid username or password"
+#                 },
+#                 status=401
+#             )
+
+#         # USER PROFILE
+#         profile = Profile.objects.get(user=user)
+
+        
+#         # DEVICE INFO
+#         user_agent_string = request.META.get(
+#             'HTTP_USER_AGENT',
+#             ''
+#         )
+
+#         user_agent = parse(user_agent_string)
+
+#         browser = user_agent.browser.family
+
+#         operating_system = user_agent.os.family
+
+#         device_name = (
+#             f"{browser} on {operating_system}"
+#         )
+
+#         ip_address = request.META.get(
+#             'REMOTE_ADDR'
+#         )
+
+#         # CHECK TRUSTED DEVICE
+#         trusted_device = TrustedDevice.objects.filter(
+#             user=user,
+#             device_name=device_name,
+#             ip_address=ip_address
+#         ).first()
+
+#         new_device = False
+
+#         if not trusted_device:
+
+#             new_device = True
+
+#             TrustedDevice.objects.create(
+#                 user=user,
+#                 device_name=device_name,
+#                 browser=browser,
+#                 operating_system=operating_system,
+#                 ip_address=ip_address
+#             )
+
+#         # SUSPICIOUS LOGIN DETECTION
+#         suspicious = False
+
+#         if (
+#             profile.allowed_lat and
+#             profile.allowed_lng and
+#             latitude and
+#             longitude
+#         ):
+
+#             try:
+
+#                 lat_diff = abs(
+#                     float(latitude) - profile.allowed_lat
+#                 )
+
+#                 lng_diff = abs(
+#                     float(longitude) - profile.allowed_lng
+#                 )
+
+#                 # BASIC GEO CHECK
+#                 if lat_diff > 1 or lng_diff > 1:
+#                     suspicious = True
+
+#             except:
+#                 suspicious = True
+
+#         # STORE LOGIN
+#         # LoginLog.objects.create(
+#         #     user=user,
+#         #     latitude=latitude,
+#         #     longitude=longitude,
+#         #     status='SUCCESS'
+#         # )
+#         LoginLog.objects.create( 
+#             user=user,
+#             latitude=latitude,
+#             longitude=longitude,
+#             status='SUCCESS',
+#             browser=browser,
+#             operating_system=operating_system,
+#             ip_address=ip_address,
+#             is_suspicious=suspicious
+#             )
+
+#         # UPDATE SECURITY SCORE
+#         calculate_security_score(user)
+
+#         # JWT TOKENS
+#         refresh = RefreshToken.for_user(user)
+
+#         return Response({
+
+#             "access": str(refresh.access_token),
+
+#             "refresh": str(refresh),
+
+#             "user": {
+#                 "id": user.id,
+#                 "username": user.username,
+#                 "email": user.email,
+#             },
+
+#             "security": {
+#                 "security_score": profile.security_score,
+#                 "two_factor_enabled": profile.two_factor_enabled,
+#                 "suspicious_login": suspicious
+#             },
+
+#             "device_security": { "new_device_detected": new_device,
+#                                  "device_name": device_name,
+#                                  "ip_address": ip_address }
+#         })
+
+
+# class LoginLogView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+#         logs = LoginLog.objects.filter(user=request.user).order_by('-created_at')
+
+#         data = [
+#     {
+#         "latitude": log.latitude,
+#         "longitude": log.longitude,
+#         "status": log.status,
+#         "time": log.created_at,
+
+#         "browser": log.browser,
+
+#         "operating_system":
+#             log.operating_system,
+
+#         "ip_address": log.ip_address,
+
+#         "is_suspicious":
+#             log.is_suspicious
+#     }
+#     for log in logs
+# ]
+
+#         return Response(data)
+    
+# class GetSalt(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+#         profile = Profile.objects.get(user=request.user)
+#         username=request.user.username
+#         salt = profile.salt
+
+#         # ✅ HANDLE BOTH CASES
+#         if isinstance(salt, bytes):
+#             salt = salt.hex()
+#         else:
+#             salt = salt  # already string
+
+#         return Response({
+#             "username":username,
+#             "salt": salt,
+#             "vault_verifier": profile.vault_verifier
+#         })
+    
+# class GetPublicKey(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request, username):
+#         try:
+#             user = User.objects.get(username=username)
+#             profile = Profile.objects.get(user=user)
+
+#             return Response({
+#                 "public_key_pem": profile.public_key_pem
+#             })
+#         except User.DoesNotExist:
+#             return Response({"error": "User not found"}, status=404)
+        
+# class GetPrivateKey(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+#         profile = Profile.objects.get(user=request.user)
+
+#         return Response({
+#             "ciphertext": profile.private_key_encrypted.decode(),
+#             "iv": profile.private_key_iv.decode()
+#         })
+    
+
+
+# vault view
+
+# from rest_framework.views import APIView
+# from rest_framework.permissions import IsAuthenticated
+# from rest_framework.response import Response
+# from ..model.vault_model import VaultEntry
+# from ..model.user_model import PasswordHealth
+
+
+# class CreateVaultEntry(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request):
+#         title = request.data.get('title')
+#         ciphertext = request.data.get('ciphertext')
+#         iv = request.data.get('iv')
+
+#         if not title or not ciphertext or not iv:
+#             return Response({"error": "Missing fields"}, status=400)
+
+#         # ✅ FIX: convert string → bytes
+#         ciphertext_bytes = ciphertext.encode('utf-8')
+#         iv_bytes = iv.encode('utf-8')
+
+#         VaultEntry.objects.create(
+#             user=request.user,
+#             title=title,
+#             ciphertext=ciphertext_bytes,
+#             iv=iv_bytes
+#         )
+
+#         return Response({"message": "Stored"})
+
+# class GetVaultEntries(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+#         entries = VaultEntry.objects.filter(user=request.user)
+
+#         data = [
+#             {
+#                 "id": e.id,
+#                 "title": e.title,
+#                 "ciphertext": e.ciphertext.decode('utf-8'),  # ✅ FIX
+#                 "iv": e.iv.decode('utf-8')                   # ✅ FIX
+#             }
+#             for e in entries
+#         ]
+
+#         return Response(data)
+
+# class UpdateVaultEntry(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def put(self, request, entry_id):
+#         entry = VaultEntry.objects.get(id=entry_id, user=request.user)
+
+#         title = request.data.get('title')
+#         ciphertext = request.data.get('ciphertext')
+#         iv = request.data.get('iv')
+
+#         if not ciphertext or not iv:
+#             return Response({"error": "Missing fields"}, status=400)
+
+#         # ✅ FIX: convert string → bytes
+#         entry.ciphertext = ciphertext.encode('utf-8')
+#         entry.iv = iv.encode('utf-8')
+
+#         if title:
+#             entry.title = title
+
+#         entry.save()
+
+#         return Response({"message": "Updated"})
+
+# class DeleteVaultEntry(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def delete(self, request, entry_id):
+#         entry = VaultEntry.objects.get(id=entry_id, user=request.user)
+#         entry.delete()
+
+#         return Response({"message": "Deleted"})
+
+# class PasswordHealthView(APIView):
+
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+
+#         passwords = PasswordHealth.objects.filter(
+#             user=request.user
+#         ).order_by('-created_at')
+
+#         data = [
+#             {
+#                 "title": p.title,
+#                 "strength": p.strength,
+#                 "score": p.score,
+#                 "is_reused": p.is_reused,
+#                 "is_common": p.is_common,
+#                 "created_at": p.created_at
+#             }
+#             for p in passwords
+#         ]
+
+#         return Response(data)
+
+
+
+# from django.urls import path
+# from rest_framework_simplejwt.views import TokenRefreshView
+
+# from .view.device_view import TrustedDevicesView
+# from .view.auth_views import (RegisterView, LoginView, GetSalt,
+#     GetPublicKey,
+#     StorePrivateKey,
+#     GetPrivateKey,
+#     LoginLogView,
+#     TrustedDevicesView,)
+# # GetSalt, LoginView, GetPublicKey, StorePrivateKey, GetPrivateKey, LoginLogView
+# from .view.vault_views import (
+#     CreateVaultEntry,
+#     GetVaultEntries,
+#     UpdateVaultEntry,
+#     DeleteVaultEntry,
+#     PasswordHealthView
+# )
+# from .view.share_views import (ShareEntry,SharedVaultView,SetLocation,CheckLocation,HasLocation)
+# from .view.profile_views import (MyProfileView,UpdateProfileView,ProfileDashboardView)
+# from drf_spectacular.views import (
+#     SpectacularAPIView,
+#     SpectacularSwaggerView,
+# )
+
+
+# urlpatterns = [
+#     #swagger
+#     path('schema/', SpectacularAPIView.as_view(), name='schema'),
+#     path(
+#         'docs/',
+#         SpectacularSwaggerView.as_view(url_name='schema'),
+#         name='swagger-ui'
+#     ),
+
+#     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+
+
+
+#     # 🔐 AUTH
+#     path('register/', RegisterView.as_view(), name='register'),
+#     path('salt/', GetSalt.as_view(), name='get_salt'),
+#     path('login/', LoginView.as_view()),
+#     path('logs/', LoginLogView.as_view()),
+#     path('profile/me/', MyProfileView.as_view()),
+#     path('profile/update/', UpdateProfileView.as_view()),
+#     path('profile/', MyProfileView.as_view()),
+#     path('profile/update/', UpdateProfileView.as_view()),
+#     path('profile/dashboard/', ProfileDashboardView.as_view()),
+#     path('trusted-devices/',TrustedDevicesView.as_view()),
+
+#     # 🔐 VAULT
+#     path('vault/', CreateVaultEntry.as_view(), name='create_vault'),       # POST
+#     path('vault/list/', GetVaultEntries.as_view(), name='get_vault'),      # GET
+#     path('vault/<int:entry_id>/', UpdateVaultEntry.as_view(), name='update_vault'),  # PUT
+#     path('vault/<int:entry_id>/delete/', DeleteVaultEntry.as_view(), name='delete_vault'),  # DELETE
+#     path('password-health/',PasswordHealthView.as_view()),
+
+#     path('user/public-key/<str:username>/', GetPublicKey.as_view()),
+#     path('private-key/', GetPrivateKey.as_view()),
+#     path('store-private-key/',StorePrivateKey.as_view()),
+#     path('share/', ShareEntry.as_view()),
+#     path('shared/', SharedVaultView.as_view()),
+
+#     # Geo fencing
+#     path('set-location/', SetLocation.as_view()),
+#     path('check-location/', CheckLocation.as_view()),
+#     path('has-location/', HasLocation.as_view()),
+# ]
+
+
+# from django.urls import path
+# from .views import register_view, login_view, LogoutView, VaultView, ShareView, SharedVaultView, WhoAmI, VaultEditView, VaultDeleteView
+# from rest_framework_simplejwt.views import TokenRefreshView
+
+
+
+# urlpatterns = [
+#     # Authentication
+#     path('register/', register_view, name='register'),
+#     path('login/', login_view, name='login'),
+#     path('logout/', LogoutView.as_view, name='logout'),
+#     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+#     # User info
+#     path('whoami/', WhoAmI.as_view(), name='whoami'),
+
+#     # Vault 
+#     path('vault/', VaultView.as_view(), name='vault'),
+#     path('vault/edit/',VaultEditView.as_view(), name='vault_edit'),
+#     path('vault/delete/',VaultDeleteView.as_view(),name='vault_delete')
+
+#     #  Sharing
+#     # path('share/', ShareView.as_view(), name='share'),
+#     # path('shared/view/', SharedVaultView.as_view()),
+#     # path('shared/revoke/', RevokeShareView.as_view()),
+# ]
+
+
+
+
+
+# from rest_framework.views import APIView
+# from rest_framework.permissions import IsAuthenticated
+# from rest_framework.response import Response
+# from rest_framework import status
+# from django.contrib.auth.models import User
+# from ..model.user_model import Profile,LoginLog
+# from math import radians, sin, cos, sqrt, atan2
+# from django.utils.dateparse import parse_datetime
+
+# from ..model.share_model import SharedEntry
+# from ..model.vault_model import VaultEntry
+
+
+# class ShareEntry(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request):
+#         entry_id = request.data.get("entry_id")
+#         recipient_username = request.data.get("recipient")
+
+#         enc_sym_key = request.data.get("enc_sym_key")
+#         ciphertext = request.data.get("ciphertext")
+#         iv = request.data.get("iv")
+#         expires_at = request.data.get("expires_at")
+
+#         expires_at_obj = None
+#         if expires_at:
+#             expires_at_obj = parse_datetime(expires_at)
+
+#         if not all([entry_id, recipient_username, enc_sym_key, ciphertext, iv]):
+#             return Response({"error": "Missing fields"}, status=400)
+
+#         try:
+#             if expires_at:
+#                 expires_at_obj = parse_datetime(expires_at)
+#                 recipient = User.objects.get(username=recipient_username)
+#                 entry = VaultEntry.objects.get(id=entry_id, user=request.user)
+
+#                 SharedEntry.objects.create(
+#                     sender=request.user,
+#                     recipient=recipient,
+#                     entry=entry,
+#                     enc_sym_key=enc_sym_key.encode(),
+#                     ciphertext=ciphertext.encode(),
+#                     iv=iv.encode(),
+#                     expires_at = expires_at_obj
+#                 )
+#                 return Response({"message": "Shared successfully"})
+            
+#         except Exception as e:
+#             return Response({"error": str(e)}, status=400)
+#     # share = SharedEntry.objects.get(id=share_id)
+        
+# class SharedVaultView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+#         entries = SharedEntry.objects.filter(recipient=request.user, revoked=False)
+
+#         data = [
+#             {
+#                 "id": e.id,
+#                 "sender": e.sender.username,
+#                 "enc_sym_key": e.enc_sym_key.decode(),
+#                 "ciphertext": e.ciphertext.decode(),
+#                 "iv": e.iv.decode()
+#             }
+#             for e in entries
+#         ]
+
+#         return Response(data)
+    
+# class HasLocation(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+#         profile = Profile.objects.get(user=request.user)
+
+#         return Response({
+#             "has_location": profile.allowed_lat is not None
+#         })
+    
+# class SetLocation(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request):
+#         profile = Profile.objects.get(user=request.user)
+
+#         profile.allowed_lat = request.data.get("lat")
+#         profile.allowed_lng = request.data.get("lng")
+#         profile.allowed_radius = request.data.get("radius", 500)
+#         profile.save()
+
+#         return Response({"message": "Location saved"})
+    
+
+# def distance_m(lat1, lon1, lat2, lon2):
+#     R = 6371000
+#     dlat = radians(lat2-lat1)
+#     dlon = radians(lon2-lon1)
+
+#     a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+#     c = 2 * atan2(sqrt(a), sqrt(1-a))
+#     return R * c
+
+# class CheckLocation(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request):
+#         profile = Profile.objects.get(user=request.user)
+
+#         if profile.allowed_lat is None:
+#             return Response({"allowed": True, "message": "No geo lock set"})
+
+#         lat = float(request.data.get("lat"))
+#         lng = float(request.data.get("lng"))
+
+#         dist = distance_m(
+#             profile.allowed_lat,
+#             profile.allowed_lng,
+#             lat,
+#             lng
+#         )
+#         LoginLog.objects.create(
+#     user=request.user,
+#     latitude=lat,
+#     longitude=lng,
+#     status="BLOCKED"
+# )
+
+#         return Response({
+#             "allowed": dist <= profile.allowed_radius,
+#             "distance": round(dist)
+#         })
+    
