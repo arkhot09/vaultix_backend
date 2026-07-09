@@ -132,9 +132,12 @@ DATABASES = {
         },
     }
 }
-print("MYSQLDATABASE:", os.getenv("MYSQLDATABASE")),
-print("Database NAME:", DATABASES["default"]["NAME"])
-print("MYSQLDATABASE:", os.getenv("MYSQLDATABASE"))
+print("=" * 50)
+print("MYSQLDATABASE =", os.getenv("MYSQLDATABASE"))
+print("MYSQLUSER     =", os.getenv("MYSQLUSER"))
+print("MYSQLHOST     =", os.getenv("MYSQLHOST"))
+print("MYSQLPORT     =", os.getenv("MYSQLPORT"))
+print("=" * 50)
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
