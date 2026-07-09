@@ -18,7 +18,8 @@ from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / '.efrom pathlib import Pathnv')
+# load_dotenv(BASE_DIR / '.efrom pathlib import Pathnv')
+load_dotenv(BASE_DIR / '.env')
 
 MEDIA_URL = "/media/"
 
@@ -31,7 +32,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG","False") == "True"
 
 # ALLOWED_HOSTS = []
 ALLOWED_HOSTS = ['django-server','localhost', '127.0.0.1','192.168.0.103','10.190.119.252','vaultixbackend-production.up.railway.app']
@@ -131,6 +132,9 @@ DATABASES = {
         },
     }
 }
+print("MYSQLDATABASE:", os.getenv("MYSQLDATABASE")),
+print("Database NAME:", DATABASES["default"]["NAME"])
+print("MYSQLDATABASE:", os.getenv("MYSQLDATABASE"))
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
