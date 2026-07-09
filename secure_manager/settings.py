@@ -28,7 +28,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-$v(i27_v_#)!g&ct=l)zi2yo669w^6d9gswc@fj$p6lyns*jpq'
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -95,26 +95,41 @@ TEMPLATES = [
 ]
 
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'vaultix',
-        'USER': 'root',
-        'PASSWORD': '',        # WAMP default may have no password; set accordingly
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
-         'charset': 'utf8mb4',
-    'init_command': "SET sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'"
-    }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'vaultix',
+#         'USER': 'root',
+#         'PASSWORD': '',        # WAMP default may have no password; set accordingly
+#         'HOST': '127.0.0.1',
+#         'PORT': '3306',
+#          'charset': 'utf8mb4',
+#     'init_command': "SET sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'"
+#     }
 
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.mysql',
-    #     'NAME': os.getenv('DB_NAME'),
-    #     'USER': os.getenv('DB_USER'),
-    #     'PASSWORD': os.getenv('DB_PASSWORD'),
-    #     'HOST': os.getenv('DB_HOST'),
-    #     'PORT': os.getenv('DB_PORT'),
-    # }
+#     # 'default': {
+#     #     'ENGINE': 'django.db.backends.mysql',
+#     #     'NAME': os.getenv('DB_NAME'),
+#     #     'USER': os.getenv('DB_USER'),
+#     #     'PASSWORD': os.getenv('DB_PASSWORD'),
+#     #     'HOST': os.getenv('DB_HOST'),
+#     #     'PORT': os.getenv('DB_PORT'),
+#     # }
+# }
+
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
+        "PORT": os.getenv("DB_PORT", "3306"),
+        "OPTIONS": {
+            "charset": "utf8mb4",
+            "init_command": "SET sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'",
+        },
+    }
 }
 
 # Database
@@ -206,5 +221,4 @@ CSRF_TRUSTED_ORIGINS = [
 # AUTH_USER_MODEL = "vault.CustomUser"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-# TRANSPORT_ENCRYPTION_KEY = os.getenv('TRANSPORT_ENCRYPTION_KEY')    
-TRANSPORT_ENCRYPTION_KEY ='MyS3cur3Tr@nsportK3y!2024XYZ#$$'
+SECRET_KEY = os.getenv("SECRET_KEY")
